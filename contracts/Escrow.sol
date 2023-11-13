@@ -35,6 +35,7 @@ modifier onlyInspector() {
     mapping(uint256 => address) public buyer;
     mapping(uint256 => bool) public inspectionPassed;
     mapping(uint256 => mapping(address => bool)) public approval;
+    mapping(uint256 => string) public inspectionComments;
 
    constructor(
         address _nftAddress, 
@@ -82,6 +83,11 @@ modifier onlyInspector() {
      }
 
     receive() external payable {}
+
+    function getInspectionComments(uint256 _nftID, string memory _comments) public 
+     onlyInspector {
+        inspectionComments[_nftID]= _comments;
+     }
 
     function getBalance() public view returns (uint256) {
         return address(this).balance;

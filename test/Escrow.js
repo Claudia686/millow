@@ -10,11 +10,11 @@ const tokens = (n) => {
 }
 
 describe('Escrow', () => {
-    let buyer, seller, inspector, lender
+    let buyer, seller, inspector, lender, hacker
     let realEstate, escrow
 
     beforeEach(async () => {
-        [buyer, seller, inspector, lender] = await ethers.getSigners()
+        [buyer, seller, inspector, lender, hacker] = await ethers.getSigners()
 
         const RealEstate = await ethers.getContractFactory("RealEstate")
         realEstate = await RealEstate.deploy()
@@ -105,6 +105,40 @@ describe('Escrow', () => {
             const result = await escrow.inspectionPassed(1)
             expect(result).to.be.equal(true)
         })
+
+        describe("Inspection comments", () => {
+            describe("Success", async () => {
+                it("Should set inspection comments successfully", async () => {
+                    const nftId = 1;
+                    const comments = 'Successful inspection comments';
+
+                    await escrow.connect(inspector).getInspectionComments(nftId, comments)
+                    expect(await escrow.inspectionComments(nftId)).to.equal(comments)
+                })
+
+                it("Should set inspection comments for another NFT", async () => {
+                    const nftId = 2;
+                    const comments = 'Another inspection comments';
+
+                    await escrow.connect(inspector).getInspectionComments(nftId, comments)
+                    expect(await escrow.inspectionComments(nftId)).to.equal(comments)
+                })
+                it("Should allow setting comments for multiple NFTs", async () => {
+                    const nftId = [3, 4, 5];
+                    const comments = 'Successful inspection comments';
+
+                    await escrow.connect(inspector).getInspectionComments(nftId, comments)
+                    expect(await escrow.inspectionComments(nftId)).to.equal(comments)
+                })
+            })
+        })
+
+        describe("Failure", async () => {
+            it("Should fail when not called by the inspector", async () => {
+                const nftId = 1;
+                const comments = 'Failed inspection comments';
+                 expect(await escrow.connect(inspector).getInspectionComments(nftId, comments)).to.be.reverted
+        })
     })
 
     describe("Approval", () => {
@@ -139,8 +173,9 @@ describe('Escrow', () => {
             await transaction.wait()
 
             it('Updates balance', async () => {
-            expect(await escrow.getBalance()).to.be.equal(0)
+                expect(await escrow.getBalance()).to.be.equal(0)
             })
         })
     })
-})
+ })
+    })
