@@ -86,6 +86,29 @@ describe('Escrow', () => {
         })
     })
 
+    describe("Marked as Inspected", () => {
+        describe("Success", async () => {
+            it("Should mark NFT as inspected by the buyer", async () => {
+                await escrow.connect(buyer).markAsInspected(1)
+                expect(await escrow.isInspected(1)).to.be.true
+            })
+        })
+
+        describe("Failure", () => {
+            it("Should revert if not called by the buyer", async () => {
+                await expect(escrow.connect(inspector).markAsInspected(1)).to.be.reverted
+            })
+
+            it("Should revert if if the NFT is not liste", async () => {
+                await expect(escrow.connect(inspector).markAsInspected(2)).to.be.reverted
+            })
+
+            it("Should revert if the NFT is not owned by the buyer", async () => {
+                await expect(escrow.connect(inspector).markAsInspected(1)).to.be.reverted
+            })
+        })
+    })
+
     describe("Deposits", () => {
         it("Updates contract balance", async () => {
             const transaction = await escrow.connect(buyer).depositEarnest(1, {
@@ -137,45 +160,45 @@ describe('Escrow', () => {
             it("Should fail when not called by the inspector", async () => {
                 const nftId = 1;
                 const comments = 'Failed inspection comments';
-                 expect(await escrow.connect(inspector).getInspectionComments(nftId, comments)).to.be.reverted
-        })
-    })
-
-    describe("Approval", () => {
-        it("Updates approval status", async () => {
-            let transaction = await escrow.connect(buyer).approveSele(1)
-            await transaction.wait()
-
-            transaction = await escrow.connect(seller).approveSele(1)
-            await transaction.wait()
-
-            transaction = await escrow.connect(lender).approveSele(1)
-            await transaction.wait()
-
-            expect(await escrow.approval(1, buyer.address)).to.be.equal(true)
-            expect(await escrow.approval(1, seller.address)).to.be.equal(true)
-            expect(await escrow.approval(1, lender.address)).to.be.equal(true)
-        })
-    })
-
-    describe("Sale", () => {
-        beforeEach(async () => {
-            let
-            const transaction = await escrow.connect(buyer).depositEarnest(1, {
-                value: tokens(5)
-            })
-            await transaction.wait()
-
-            transaction = await escrow.connect(inspector).updateInspectorStatus(1, true)
-            await transaction.wait()
-
-            transaction = await escrow.connect(buyer).approveSele(1)
-            await transaction.wait()
-
-            it('Updates balance', async () => {
-                expect(await escrow.getBalance()).to.be.equal(0)
+                expect(await escrow.connect(inspector).getInspectionComments(nftId, comments)).to.be.reverted
             })
         })
+
+        describe("Approval", () => {
+            it("Updates approval status", async () => {
+                let transaction = await escrow.connect(buyer).approveSele(1)
+                await transaction.wait()
+
+                transaction = await escrow.connect(seller).approveSele(1)
+                await transaction.wait()
+
+                transaction = await escrow.connect(lender).approveSele(1)
+                await transaction.wait()
+
+                expect(await escrow.approval(1, buyer.address)).to.be.equal(true)
+                expect(await escrow.approval(1, seller.address)).to.be.equal(true)
+                expect(await escrow.approval(1, lender.address)).to.be.equal(true)
+            })
+        })
+
+        describe("Sale", () => {
+            beforeEach(async () => {
+                let
+                const transaction = await escrow.connect(buyer).depositEarnest(1, {
+                    value: tokens(5)
+                })
+                await transaction.wait()
+
+                transaction = await escrow.connect(inspector).updateInspectorStatus(1, true)
+                await transaction.wait()
+
+                transaction = await escrow.connect(buyer).approveSele(1)
+                await transaction.wait()
+
+                it('Updates balance', async () => {
+                    expect(await escrow.getBalance()).to.be.equal(0)
+                })
+            })
+        })
     })
- })
-    })
+})
