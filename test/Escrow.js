@@ -30,7 +30,6 @@ describe('Escrow', () => {
             lender.address
         )
 
-
         transaction = await realEstate.connect(seller).approve(escrow.address, 1)
         await transaction.wait()
 
@@ -183,8 +182,7 @@ describe('Escrow', () => {
 
         describe("Sale", () => {
             beforeEach(async () => {
-                let
-                const transaction = await escrow.connect(buyer).depositEarnest(1, {
+                let transaction = await escrow.connect(buyer).depositEarnest(1, {
                     value: tokens(5)
                 })
                 await transaction.wait()
