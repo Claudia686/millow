@@ -98,7 +98,7 @@ describe('Escrow', () => {
                 await expect(escrow.connect(inspector).markAsInspected(1)).to.be.reverted
             })
 
-            it("Should revert if if the NFT is not liste", async () => {
+            it("Should revert if if the NFT is not listed", async () => {
                 await expect(escrow.connect(inspector).markAsInspected(2)).to.be.reverted
             })
 

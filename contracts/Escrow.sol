@@ -112,4 +112,18 @@ modifier onlyInspector() {
         require(approval[_nftID][lender]);
         require(address(this).balance >= purchasedPrice[_nftID]);
     }
+
+    function cancelListing(uint256 _nftID) public onlySeller {
+        require(isListed[_nftID], "Listing is not found");
+
+        IERC721(nftAddress).transferFrom(address(this), seller, _nftID);
+         isListed[_nftID] = false;
+         purchasedPrice[_nftID] = 0;
+         escrowAmount[_nftID] = 0;
+         buyer[_nftID] = address(0);
+         inspectionPassed[_nftID] = false;
+         approval[_nftID][buyer[_nftID]] = false;
+         approval[_nftID][seller] = false;
+         approval[_nftID][lender] = false;
+    }
 }
