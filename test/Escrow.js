@@ -89,13 +89,9 @@ describe('Escrow', () => {
         describe("Success", async () => {
             it("Cancels listing and updates state", async () => {
                 const nftId = 1;
-
-                // calling cancelListing
                 const transaction = await escrow.connect(seller).cancelListing(nftId)
                 await transaction.wait()
-                console.log("transaction", transaction)
 
-                // check the state
                 expect(await escrow.isListed(nftId)).to.equal(false);
                 expect(await realEstate.ownerOf(nftId)).to.equal(seller.address)
                 expect(await escrow.purchasedPrice(nftId)).to.equal(0)
@@ -105,12 +101,16 @@ describe('Escrow', () => {
                 expect(await escrow.approval(nftId, buyer.address)).to.equal(false);
                 expect(await escrow.approval(nftId, seller.address)).to.equal(false);
                 expect(await escrow.approval(nftId, lender.address)).to.equal(false);
-
-                // check if nft was transfered back to the seller
                 expect(await realEstate.ownerOf(nftId)).to.equal(seller.address)
+            })
 
+            it("Cancels unlisted NFT without affecting state", async () => {
+                const listedNFTId = 1
+                expect(await escrow.isListed(listedNFTId)).to.equal(true)
 
-
+                const transaction = await escrow.connect(seller).cancelListing(listedNFTId)
+                await transaction.wait()
+                expect(await escrow.isListed(listedNFTId)).to.equal(false)
             })
         })
     })
