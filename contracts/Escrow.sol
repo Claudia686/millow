@@ -115,6 +115,7 @@ modifier onlyInspector() {
 
     function cancelListing(uint256 _nftID) public onlySeller {
         require(isListed[_nftID], "Listing is not found");
+        require(!inspectionPassed[_nftID], "Cannot cancel after inspection has passed");
 
         IERC721(nftAddress).transferFrom(address(this), seller, _nftID);
          isListed[_nftID] = false;
