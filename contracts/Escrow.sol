@@ -42,6 +42,7 @@ modifier onlyInspector() {
     mapping(uint256 => mapping(address => bool)) public approval;
     mapping(uint256 => string) public inspectionComments;
     mapping(uint256 => bool) public isInspected;
+    mapping(address => uint256) public pendingWithdrawals;
 
    constructor(
         address _nftAddress, 
@@ -117,6 +118,9 @@ modifier onlyInspector() {
         require(isListed[_nftID], "Listing is not found");
         require(!inspectionPassed[_nftID], "Cannot cancel after inspection has passed");
 
+        pendingWithdrawals[seller] += escrowAmount[_nftID];
+
+
         IERC721(nftAddress).transferFrom(address(this), seller, _nftID);
          isListed[_nftID] = false;
          purchasedPrice[_nftID] = 0;
@@ -126,5 +130,18 @@ modifier onlyInspector() {
          approval[_nftID][buyer[_nftID]] = false;
          approval[_nftID][seller] = false;
          approval[_nftID][lender] = false;
+
+
+
+
+
+    }
+
+    function withdraw() public onlySeller {
+        uint256 amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No funds to withdraw");
+
+        pendingWithdrawals[msg.sender] = 0;
+        payable(msg.sender).transfer(amount);
     }
 }
