@@ -9,7 +9,7 @@ const tokens = (n) => {
     return ethers.utils.parseUnits(n.toString(), 'ether')
 }
 
-describe('Escrow', () => {
+describe("Escrow", () => {
     let buyer, seller, inspector, lender, hacker
     let realEstate, escrow
 
@@ -85,7 +85,7 @@ describe('Escrow', () => {
         })
     })
 
-    describe(" Cancel Listing", () => {
+    describe("Cancel Listing", () => {
         describe("Success", async () => {
             it("Cancels listing and updates state", async () => {
                 const nftId = 1;
@@ -242,10 +242,11 @@ describe('Escrow', () => {
                 transaction = await escrow.connect(buyer).approveSele(1)
                 await transaction.wait()
 
-                it('Updates balance', async () => {
+                it("Updates balance", async () => {
                     expect(await escrow.getBalance()).to.be.equal(0)
                 })
             })
         })
+
     })
 })
