@@ -127,12 +127,11 @@ describe("Escrow", () => {
 
             it("Revert if trying to cancel after inspection has passed", async function() {
                 const nftId = 1;
-                await escrow.connect(inspector).updateInspectorStatus(nftId, true)
+                await escrow.connect(inspector).updateInspectionStatus(nftId, true)
                 await expect(escrow.connect(seller).cancelListing(nftId)).to.be.reverted
             })
         })
     })
-
 
     describe("Marked as Inspected", () => {
         describe("Success", async () => {
@@ -171,7 +170,7 @@ describe("Escrow", () => {
 
     describe("Inspection", () => {
         it("Updates inspection status", async () => {
-            const transaction = await escrow.connect(inspector).updateInspectorStatus(1, true)
+            const transaction = await escrow.connect(inspector).updateInspectionStatus(1, true)
             await transaction.wait()
             const result = await escrow.inspectionPassed(1)
             expect(result).to.be.equal(true)
@@ -194,6 +193,7 @@ describe("Escrow", () => {
                     await escrow.connect(inspector).getInspectionComments(nftId, comments)
                     expect(await escrow.inspectionComments(nftId)).to.equal(comments)
                 })
+
                 it("Should allow setting comments for multiple NFTs", async () => {
                     const nftId = [3, 4, 5];
                     const comments = 'Successful inspection comments';
@@ -202,25 +202,25 @@ describe("Escrow", () => {
                     expect(await escrow.inspectionComments(nftId)).to.equal(comments)
                 })
             })
-        })
 
-        describe("Failure", async () => {
-            it("Should fail when not called by the inspector", async () => {
-                const nftId = 1;
-                const comments = 'Failed inspection comments';
-                expect(await escrow.connect(inspector).getInspectionComments(nftId, comments)).to.be.reverted
+            describe("Failure", async () => {
+                it("Should fail when not called by the inspector", async () => {
+                    const nftId = 1;
+                    const comments = 'Failed inspection comments';
+                    expect(await escrow.connect(inspector).getInspectionComments(nftId, comments)).to.be.reverted
+                })
             })
         })
 
         describe("Approval", () => {
             it("Updates approval status", async () => {
-                let transaction = await escrow.connect(buyer).approveSele(1)
+                let transaction = await escrow.connect(buyer).approveSale(1)
                 await transaction.wait()
 
-                transaction = await escrow.connect(seller).approveSele(1)
+                transaction = await escrow.connect(seller).approveSale(1)
                 await transaction.wait()
 
-                transaction = await escrow.connect(lender).approveSele(1)
+                transaction = await escrow.connect(lender).approveSale(1)
                 await transaction.wait()
 
                 expect(await escrow.approval(1, buyer.address)).to.be.equal(true)
@@ -236,17 +236,35 @@ describe("Escrow", () => {
                 })
                 await transaction.wait()
 
-                transaction = await escrow.connect(inspector).updateInspectorStatus(1, true)
+                transaction = await escrow.connect(inspector).updateInspectionStatus(1, true)
                 await transaction.wait()
 
-                transaction = await escrow.connect(buyer).approveSele(1)
+                transaction = await escrow.connect(buyer).approveSale(1)
                 await transaction.wait()
 
-                it("Updates balance", async () => {
-                    expect(await escrow.getBalance()).to.be.equal(0)
+                transaction = await escrow.connect(seller).approveSale(1)
+                await transaction.wait()
+
+                transaction = await escrow.connect(lender).approveSale(1)
+                await transaction.wait()
+
+                await lender.sendTransaction({
+                    to: escrow.address,
+                    value: tokens(5)
                 })
+
+                 transaction = await escrow.connect(seller).finalizeSale(1)
+            await transaction.wait()
+
+            })
+
+            it('Updates ownership', async () => {
+                expect(await realEstate.ownerOf(1)).to.be.equal(buyer.address)
+            })
+
+            it('Updates balance', async () => {
+                expect(await escrow.getBalance()).to.be.equal(0)
             })
         })
-
     })
 })

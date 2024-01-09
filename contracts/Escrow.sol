@@ -84,7 +84,7 @@ modifier onlyInspector() {
         require(msg.value >= escrowAmount[_nftID]);
     }
 
-     function updateInspectorStatus(uint256 _nftID, bool _passed) 
+     function updateInspectionStatus(uint256 _nftID, bool _passed) 
          public 
          onlyInspector 
      {
@@ -92,11 +92,9 @@ modifier onlyInspector() {
 
      }
 
-     function approveSele(uint256 _nftID) public {
+     function approveSale(uint256 _nftID) public {
         approval[_nftID][msg.sender] = true;
      }
-
-    receive() external payable {}
 
     function getInspectionComments(uint256 _nftID, string memory _comments) public 
      onlyInspector {
@@ -107,19 +105,39 @@ modifier onlyInspector() {
         return address(this).balance;
     }
 
-    function fanalizedSale(uint256 _nftID) public {
+    function finalizeSale(uint256 _nftID) public {
         require(inspectionPassed[_nftID]);
         require(approval[_nftID][buyer[_nftID]]);
         require(approval[_nftID][seller]);
         require(approval[_nftID][lender]);
         require(address(this).balance >= purchasedPrice[_nftID]);
+
+        isListed[_nftID] = false;
+          (bool success, ) = payable(seller).call{value: address(this).balance}(
+            ""
+        );
+
+          require(success);
+
+        IERC721(nftAddress).transferFrom(address(this), buyer[_nftID], _nftID);
     }
+
+    function cancelSale(uint256 _nftID) public {
+        if (inspectionPassed[_nftID] == false) {
+            payable(buyer[_nftID]).transfer(address(this).balance);
+        } else {
+            payable(seller).transfer(address(this).balance);
+        }
+    }
+
+       receive() external payable {}
 
     function cancelListing(uint256 _nftID) public onlySeller {
         require(isListed[_nftID], "Listing is not found");
         require(!inspectionPassed[_nftID], "Cannot cancel after inspection has passed");
 
-        pendingWithdrawals[seller] += escrowAmount[_nftID];// Inside the cancelListing function
+        pendingWithdrawals[seller] += escrowAmount[
+        _nftID];// Inside the cancelListing function
         IERC721(nftAddress).transferFrom(address(this), seller, _nftID);
 
          isListed[_nftID] = false;
