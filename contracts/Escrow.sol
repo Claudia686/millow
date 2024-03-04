@@ -43,8 +43,7 @@ modifier onlyInspector() {
     mapping(uint256 => string) public inspectionComments;
     mapping(uint256 => bool) public isInspected;
     mapping(address => uint256) public pendingWithdrawals;
-
-
+    
    constructor(
         address _nftAddress, 
         address payable _seller, 
@@ -116,14 +115,23 @@ modifier onlyInspector() {
           (bool success, ) = payable(seller).call{value: address(this).balance}(
             ""
         );
-
           require(success);
 
         IERC721(nftAddress).transferFrom(address(this), buyer[_nftID], _nftID);
     }
 
     function cancelSale(uint256 _nftID) public {
-        if (inspectionPassed[_nftID] == false) {
+        // updates the state before funds transfer
+        isListed[_nftID] = false;
+         (bool success, ) = payable(seller).call{value: escrowAmount[_nftID]}
+        ("");
+        require(success, 'Transfer failed');
+
+        IERC721(nftAddress).transferFrom(address(this), seller, _nftID);
+        // allow cancellation only if the inspection has passed
+        require(inspectionPassed[_nftID] = true, "Cannot cancel before inspection has passed");
+
+        if (inspectionPassed[_nftID] = false) {
             payable(buyer[_nftID]).transfer(address(this).balance);
         } else {
             payable(seller).transfer(address(this).balance);
@@ -133,7 +141,7 @@ modifier onlyInspector() {
        receive() external payable {}
 
     function cancelListing(uint256 _nftID) public onlySeller {
-        require(isListed[_nftID], "Listing is not found");
+        require(isListed[_nftID] = false, "Listing is not found");
         require(!inspectionPassed[_nftID], "Cannot cancel after inspection has passed");
 
         pendingWithdrawals[seller] += escrowAmount[
@@ -161,6 +169,4 @@ modifier onlyInspector() {
     emit Withdrawal(msg.sender, amount);
   }     
      event Withdrawal(address indexed seller, uint256 amount);  
-
-    
 }
