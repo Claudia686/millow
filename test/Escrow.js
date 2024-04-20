@@ -83,7 +83,16 @@ describe("Escrow", () => {
             expect(result).to.be.equal(tokens(5))
         })
     })
-    
+
+    describe("Cancel Sale", () => {
+        describe("Failure", async () => {
+            it("Reverts if no funds deposited", async () => {
+                const nftId = 2
+                expect(escrow.connect(buyer).cancelSale(buyer.address, nftId)).to.be.revertedWith("No deposited amount to finalize the sale")
+            })
+        })
+    })
+
     describe("Cancel Listing", () => {
         describe("Success", async () => {
             it("Cancels listing and updates state", async () => {
@@ -116,7 +125,7 @@ describe("Escrow", () => {
         describe("Failure", async () => {
             it("Reverts is non-seller tries to cancel a listing", async () => {
                 const nftId = 1;
-                 expect(escrow.connect(buyer).cancelListing(nftId)).to.be.reverted
+                expect(escrow.connect(buyer).cancelListing(nftId)).to.be.reverted
             })
 
             it("Reverts if trying to cancel a non-existing listing", async () => {
