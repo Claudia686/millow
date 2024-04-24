@@ -15,7 +15,7 @@ contract Escrow {
     address public inspector;
     address public lender;
 
-    modifier onlyBuyerAddress(address buyer) {
+modifier onlyBuyerAddress(address buyer) {
     require(msg.sender == buyer, "Escrow: Only the buyer can call this function");
     _;
 }
@@ -34,6 +34,7 @@ modifier onlyInspector() {
     require(msg.sender == inspector, "Escrow: Only inspector can call this method");
     _;
 }
+
     mapping(uint256 => bool) public isListed;
     mapping(uint256 => uint256) public purchasedPrice;
     mapping(uint256 => uint256) public escrowAmount;
@@ -62,6 +63,9 @@ modifier onlyInspector() {
         lender = _lender;
     }
 
+    // Allows the contract to receive Ether
+       receive() external payable {}
+
     function list(
         uint256 _nftID, 
         address _buyer, 
@@ -78,7 +82,7 @@ modifier onlyInspector() {
         buyer[_nftID] = _buyer;
     }
 
-     function markAsInspected(uint256 _nftID) public onlyBuyer(_nftID) {
+    function markAsInspected(uint256 _nftID) public onlyBuyer(_nftID) {
         isInspected[_nftID] = true;
         emit NFTMarkedAsInspected(_nftID);
     }
@@ -88,30 +92,30 @@ modifier onlyInspector() {
         require(msg.value >= escrowAmount[_nftID]);  
     }   
 
-     function updateInspectionStatus(uint256 _nftID, bool _passed) 
-         public 
+    function updateInspectionStatus(uint256 _nftID, bool _passed) 
+        public 
          onlyInspector 
      {
         inspectionPassed[_nftID] = _passed;
-     }
+    }
 
-     function approveSale(uint256 _nftID) public {
+    function approveSale(uint256 _nftID) public {
         approval[_nftID][msg.sender] = true;
-     }
+    }
 
     function getInspectionComments(uint256 _nftID, string memory _comments) public 
-     onlyInspector {
+        onlyInspector {
         inspectionComments[_nftID]= _comments;
-     }
+    }
 
     function getBalance() public view returns (uint256) {
         return address(this).balance;
     }
 
     function finalizeSale(uint256 _nftID) public {
-       uint256 escrowAmount = escrowAmount[_nftID];
-       address buyerAddress = buyer[_nftID];
-       uint256 depositedAmount = deposited[buyerAddress];
+        uint256 escrowAmount = escrowAmount[_nftID];
+        address buyerAddress = buyer[_nftID];
+        uint256 depositedAmount = deposited[buyerAddress];
         
         // Ensure buyer has enough funds deposited
         require(deposited[buyerAddress] >= escrowAmount, "Escrow: Insufficient deposited funds");
@@ -136,10 +140,10 @@ modifier onlyInspector() {
           (bool success, ) = payable(seller).call{value: address(this).balance}(
             ""
         );
-          require(success);
+        require(success);
 
           // Reset deposited amount
-          deposited[buyerAddress] = 0;
+        deposited[buyerAddress] = 0;
 
         // Transfer the NFT ownership to the buyer
         IERC721(nftAddress).transferFrom(address(this), buyerAddress, _nftID);
@@ -157,10 +161,7 @@ modifier onlyInspector() {
         }
     }  
 
-    // Allows the contract to receive Ether
-       receive() external payable {}
-
-       function performInspection(uint256 _nftID) public onlyInspector {
+    function performInspection(uint256 _nftID) public onlyInspector {
         // Ensure the NFT exists and is listed for sale
         require(isListed[_nftID], "Escrow: NFT is not listed for sale");
 
@@ -170,8 +171,7 @@ modifier onlyInspector() {
         // Emit event when inspection was completed
         inspectionPassed[_nftID] = false;
         emit InspectionCompleted(_nftID);
-
-       }
+    }
 
     function cancelListing(uint256 _nftID) public onlySeller {
         require(isListed[_nftID] == true, "Escrow: Listing is not found");
@@ -197,8 +197,8 @@ modifier onlyInspector() {
         pendingWithdrawals[msg.sender] = 0;
         bool success = payable(msg.sender).send(amount);
         
-    require(success, "Escrow: Transfer failed");
-    emit Withdrawal(msg.sender, amount);
-  }     
+        require(success, "Escrow: Transfer failed");
+        emit Withdrawal(msg.sender, amount);
+    }     
     
 }

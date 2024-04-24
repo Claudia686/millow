@@ -16,23 +16,23 @@ describe("Escrow", () => {
     beforeEach(async () => {
         [buyer, seller, inspector, lender, hacker] = await ethers.getSigners()
 
-        const RealEstate = await ethers.getContractFactory("RealEstate")
+    const RealEstate = await ethers.getContractFactory("RealEstate")
         realEstate = await RealEstate.deploy()
         let transaction = await realEstate.connect(seller).mint("https://ipfs.io/ipfs/QmTudSYeM7mz3PkYEWXWqPjomRPHogcMFSq7XAvsvsgAPS")
-        await transaction.wait()
+    await transaction.wait()
 
-        const Escrow = await ethers.getContractFactory("Escrow")
+    const Escrow = await ethers.getContractFactory("Escrow")
         escrow = await Escrow.deploy(
             realEstate.address,
             seller.address,
             inspector.address,
             lender.address
-        )
+    )
 
-        transaction = await realEstate.connect(seller).approve(escrow.address, 1)
+    transaction = await realEstate.connect(seller).approve(escrow.address, 1)
         await transaction.wait()
 
-        transaction = await escrow.connect(seller).list(1, buyer.address, tokens(10), tokens(5))
+    transaction = await escrow.connect(seller).list(1, buyer.address, tokens(10), tokens(5))
         await transaction.wait()
     })
 
