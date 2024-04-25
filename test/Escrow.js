@@ -88,7 +88,7 @@ describe("Escrow", () => {
         describe("Failure", async () => {
             it("Reverts if no funds deposited", async () => {
                 const nftId = 2
-                expect(escrow.connect(buyer).cancelSale(buyer.address, nftId)).to.be.revertedWith("No deposited amount to finalize the sale")
+                expect(escrow.connect(buyer).cancelSale(buyer.address, nftId)).to.be.revertedWith("Escrow: No deposited amount to finalize the sale")
             })
         })
     })
